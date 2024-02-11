@@ -1,0 +1,77 @@
+name: Jenkins Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20.x'
+      - name: Install dependencies
+        run: npm install
+      - name: Install curl and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+      - name: Build
+        run: |
+          echo "Stage build"
+          CRUMB=$(curl -s -u ${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }} ${{ secrets.JENKINS_URL }}/crumbIssuer/api/json | jq -r '.crumb')
+          CRUMB_FIELD=$(curl -s -u ${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }} ${{ secrets.JENKINS_URL }}/crumbIssuer/api/json | jq -r '.crumbRequestField')
+          curl -s -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }}" -X POST "${{ secrets.JENKINS_URL }}/job/hi/build" -H "$CRUMB_FIELD:$CRUMB" || true
+          while true
+          do
+            sleep 5
+            result=$(curl -s -u ${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }} ${{ secrets.JENKINS_URL }}/job/hi/lastBuild/api/json | jq -r '.result')
+            if [ "$result" == "SUCCESS" ]; then
+              echo "Jenkins job succeeded"
+              echo $result > SUCCESS
+              break
+            elif [ "$result" == "FAILURE" ] || [ "$result" == "ABORTED" ] || [ "$result" == "UNSTABLE" ] || [ "$result" == "NOT_BUILT" ]; then
+              echo "Jenkins job ended with status $result"
+              exit 1
+            else
+              echo "Jenkins job is still running..."
+            fi
+          done
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()  # 항상 실행되도록 설정
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20.x'
+      - name: Install curl and jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+      - name: Deploy
+        run: |
+          echo "Stage deploy"
+          CRUMB=$(curl -s -u ${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }} ${{ secrets.JENKINS_URL }}/crumbIssuer/api/json | jq -r '.crumb')
+          CRUMB_FIELD=$(curl -s -u ${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }} ${{ secrets.JENKINS_URL }}/crumbIssuer/api/json | jq -r '.crumbRequestField')
+          curl -s -u "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }}" -X POST "${{ secrets.JENKINS_URL }}/job/argo/build" -H "$CRUMB_FIELD:$CRUMB" || true
+          while true
+          do
+            sleep 5
+            result=$(curl -s -u ${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }} ${{ secrets.JENKINS_URL }}/job/argo/lastBuild/api/json | jq -r '.result')
+            if [ "$result" == "SUCCESS" ]; then
+              echo "Jenkins job succeeded"
+              echo $result > SUCCESS
+              break
+            elif [ "$result" == "FAILURE" ] || [ "$result" == "ABORTED" ] || [ "$result" == "UNSTABLE" ] || [ "$result" == "NOT_BUILT" ]; then
+              echo "Jenkins job ended with status $result"
+              exit 1
