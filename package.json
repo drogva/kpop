@@ -1,0 +1,22 @@
+{
+  "name": "kpop",
+  "version": "1.0.0",
+  "description": "jenkins",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/drogva/kpop.git"
+  },
+  "keywords": [
+    "kpop"
+  ],
+  "author": "shin seung ho",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/drogva/kpop/issues"
+  },
+  "homepage": "https://github.com/drogva/kpop#readme"
+}
