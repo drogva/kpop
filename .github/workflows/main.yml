@@ -75,3 +75,7 @@ jobs:
             elif [ "$result" == "FAILURE" ] || [ "$result" == "ABORTED" ] || [ "$result" == "UNSTABLE" ] || [ "$result" == "NOT_BUILT" ]; then
               echo "Jenkins job ended with status $result"
               exit 1
+            else
+              echo "Jenkins job is still running..."
+            fi
+          done
