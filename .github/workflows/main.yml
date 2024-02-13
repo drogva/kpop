@@ -46,7 +46,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: always()  # 항상 실행되도록 설정
+   
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
